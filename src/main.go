@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"token"
+	"lexer"
 )
 
 func main() {

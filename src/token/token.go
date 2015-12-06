@@ -2,10 +2,17 @@ package token
 
 import "strconv"
 
-type Token int
+type Token struct {
+	rowIndex int
+	columtIndex int
+	tokenType TokenType
+	value string
+}
+
+type TokenType int
 
 const (
-	ILLEGAL Token = iota
+	ILLEGAL TokenType = iota
 	EOF
 	COMMENT
 
@@ -25,6 +32,7 @@ const (
 	QUO
 	REM
 
+	IF
 	FOR
 	ELSE
 	BREAK
@@ -40,6 +48,8 @@ const (
 
 	SEMICOLON
 	COLON
+	
+	NUMBER
 )
 
 var tokens = [...]string{
@@ -66,10 +76,13 @@ var tokens = [...]string{
 	RBRACE:    "}",
 	SEMICOLON: ";",
 	COLON:     ":",
+	
+	NUMBER:   "number",
 
 	BREAK:    "break",
 	CONTINUE: "continue",
 
+	IF:			 "if",
 	ELSE:        "else",
 	FOR:         "for",
 
@@ -81,9 +94,9 @@ var tokens = [...]string{
 	VAR:    "var",
 }
 
-func (tok Token) String() string {
+func (tok TokenType) String() string {
 	s := ""
-	if 0 <= tok && tok < Token(len(tokens)) {
+	if 0 <= tok && tok < TokenType(len(tokens)) {
 		s = tokens[tok]
 	}
 	if s == "" {

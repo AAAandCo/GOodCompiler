@@ -3,11 +3,13 @@ package token
 import "strconv"
 
 type Token struct {
-	rowIndex int
-	columtIndex int
-	tokenType TokenType
-	value string
+	RowIndex int
+	ColumtIndex int
+	TokenType TokenType
+	Value string
 }
+
+type Tokens []Token
 
 type TokenType int
 
@@ -50,6 +52,8 @@ const (
 	COLON
 	
 	NUMBER
+	LITERAL
+	ASSIGNED
 )
 
 var tokens = [...]string{
@@ -77,21 +81,24 @@ var tokens = [...]string{
 	SEMICOLON: ";",
 	COLON:     ":",
 	
-	NUMBER:   "number",
+	NUMBER:   "NUMBER",
 
-	BREAK:    "break",
-	CONTINUE: "continue",
+	BREAK:    "BREAK",
+	CONTINUE: "CONTINUE",
 
-	IF:			 "if",
-	ELSE:        "else",
-	FOR:         "for",
+	IF:			 "IF",
+	ELSE:        "ELSE",
+	FOR:         "FOR",
 
-	FUNC:   "func",
+	FUNC:   "FUNC",
 
-	RETURN:    "return",
+	RETURN:    "RETURN",
 
-	TYPE:   "type",
-	VAR:    "var",
+	TYPE:   "TYPE",
+	VAR:    "VAR",
+	
+	LITERAL: "LITERAL",
+	ASSIGNED: "=",
 }
 
 func (tok TokenType) String() string {

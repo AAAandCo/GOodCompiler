@@ -1,11 +1,17 @@
 package lexer
 
 import (
-	"fmt"
 	"regexp"
-	"errors"
 	"token"
 )
+
+type Token token.Token
+
+type Error struct {
+	RowIndex int
+	ColumtIndex int
+	Value string
+}
 
 type Lexer struct {
 	commentReg *regexp.Regexp
@@ -42,11 +48,18 @@ type Lexer struct {
 	typeReg *regexp.Regexp
 	varReg *regexp.Regexp
 	
+	literalReg *regexp.Regexp
     numberReg *regexp.Regexp
+	
+	assignedReg *regexp.Regexp
+	
 	whiteSpacesReg *regexp.Regexp
+	absorbErrorReg *regexp.Regexp
+	
 	rowIndex int
 	columtIndex int
-	tokens []string
+	tokens []Token
+	errors []Error
 }
 
 func (self *Lexer) trim(expression string) string {	
@@ -58,115 +71,140 @@ func (self *Lexer) trim(expression string) string {
 	return expression
 }
 
-func (self *Lexer) parseTokenByExp(expressionSrc string, re regexp.Regexp, tokenType TokenType) (expression string, token Token) {	
+func (self *Lexer) absorbError(expression string) (string, string) {	
+	slice := self.absorbErrorReg.FindStringIndex(expression)
+	if slice != nil {
+		self.columtIndex += slice[1]
+		return expression[slice[1]:], expression[slice[0]:slice[1]]
+	}
+	return expression, ""
+}
+
+func (self *Lexer) appendError(expression string) string {	
+	var error Error
+	error.ColumtIndex = self.columtIndex
+	error.RowIndex = self.rowIndex
+	expression, error.Value = self.absorbError(expression)
+	self.errors = append(self.errors, error)
+
+	return expression
+}
+
+func (self *Lexer) parseTokenByExp(expressionSrc string, re regexp.Regexp, tokenType token.TokenType) (expression string, token Token) {	
 	slice := re.FindStringIndex(expressionSrc)
 	expression = expressionSrc
 	if slice != nil {
 		self.columtIndex += slice[1]
-		token.columtIndex = self.columtIndex
-		token.rowIndex = self.rowIndex
-		token.tokenType = tokenType
-		token.value = expression[slice[0]:slice[1]]
+		token.ColumtIndex = self.columtIndex
+		token.RowIndex = self.rowIndex
+		token.TokenType = tokenType
+		token.Value = expression[slice[0]:slice[1]]
 		expression = expression[slice[1]:]
 		return expression, token
 	}
 	return expression, token
 }
 
-func (self *Lexer) parseToken(expressionSrc string) (expression string, token Token) {	
+func (self *Lexer) parseToken(expressionSrc string) (expression string, tokenElem Token) {	
     expression = self.trim(expressionSrc)
 	
-	expression, token = self.parseTokenByExp(expression, *self.numberReg, NUMBER)
-	if token.tokenType == ILLEGAL {
-		expression, token = self.parseTokenByExp(expression, *self.commentReg, COMMENT)
+	expression, tokenElem = self.parseTokenByExp(expression, *self.numberReg, token.NUMBER)
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.commentReg, token.COMMENT)
 	}
-	if token.tokenType == ILLEGAL {
-		expression, token = self.parseTokenByExp(expression, *self.intReg, INT)
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.intReg, token.INT)
 	}
-	if token.tokenType == ILLEGAL {
-		expression, token = self.parseTokenByExp(expression, *self.floatReg, FLOAT)
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.floatReg, token.FLOAT)
 	}
-	if token.tokenType == ILLEGAL {
-		expression, token = self.parseTokenByExp(expression, *self.stringReg, STRING)
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.stringReg, token.STRING)
 	}
-	if token.tokenType == ILLEGAL {
-		expression, token = self.parseTokenByExp(expression, *self.addOpReg, ADD)
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.addOpReg, token.ADD)
 	}
-	if token.tokenType == ILLEGAL {
-		expression, token = self.parseTokenByExp(expression, *self.subOpReg, SUB)
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.subOpReg, token.SUB)
 	}
-	if token.tokenType == ILLEGAL {
-		expression, token = self.parseTokenByExp(expression, *self.mulOpReg, MUL)
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.mulOpReg, token.MUL)
 	}
-	if token.tokenType == ILLEGAL {
-		expression, token = self.parseTokenByExp(expression, *self.quoOpReg, QUO)
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.quoOpReg, token.QUO)
 	}
-	if token.tokenType == ILLEGAL {
-		expression, token = self.parseTokenByExp(expression, *self.remOpReg, REM)
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.remOpReg, token.REM)
 	}
-	if token.tokenType == ILLEGAL {
-		expression, token = self.parseTokenByExp(expression, *self.lparenReg, LPAREN)
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.lparenReg, token.LPAREN)
 	}
-	if token.tokenType == ILLEGAL {
-		expression, token = self.parseTokenByExp(expression, *self.lbrackReg, LBRACK)
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.lbrackReg, token.LBRACK)
 	}
-	if token.tokenType == ILLEGAL {
-		expression, token = self.parseTokenByExp(expression, *self.lbraceReg, LBRACE)
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.lbraceReg, token.LBRACE)
 	}
-	if token.tokenType == ILLEGAL {
-		expression, token = self.parseTokenByExp(expression, *self.rparenReg, RPAREN)
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.rparenReg, token.RPAREN)
 	}
-	if token.tokenType == ILLEGAL {
-		expression, token = self.parseTokenByExp(expression, *self.rbrackReg, RBRACK)
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.rbrackReg, token.RBRACK)
 	}
-	if token.tokenType == ILLEGAL {
-		expression, token = self.parseTokenByExp(expression, *self.rbraceReg, RBRACE)
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.rbraceReg, token.RBRACE)
 	}
-	if token.tokenType == ILLEGAL {
-		expression, token = self.parseTokenByExp(expression, *self.semicolonReg, SEMICOLON)
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.semicolonReg, token.SEMICOLON)
 	}
-	if token.tokenType == ILLEGAL {
-		expression, token = self.parseTokenByExp(expression, *self.colonReg, COLON)
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.colonReg, token.COLON)
 	}
-	if token.tokenType == ILLEGAL {
-		expression, token = self.parseTokenByExp(expression, *self.breakReg, BREAK)
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.breakReg, token.BREAK)
 	}
-	if token.tokenType == ILLEGAL {
-		expression, token = self.parseTokenByExp(expression, *self.continueReg, CONTINUE)
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.continueReg, token.CONTINUE)
 	}
-	if token.tokenType == ILLEGAL {
-		expression, token = self.parseTokenByExp(expression, *self.ifReg, IF)
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.ifReg, token.IF)
 	}
-	if token.tokenType == ILLEGAL {
-		expression, token = self.parseTokenByExp(expression, *self.elseReg, ELSE)
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.elseReg, token.ELSE)
 	}
-	if token.tokenType == ILLEGAL {
-		expression, token = self.parseTokenByExp(expression, *self.forReg, FOR)
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.forReg, token.FOR)
 	}
-	if token.tokenType == ILLEGAL {
-		expression, token = self.parseTokenByExp(expression, *self.funcReg, FUNC)
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.funcReg, token.FUNC)
 	}
-	if token.tokenType == ILLEGAL {
-		expression, token = self.parseTokenByExp(expression, *self.returnReg, RETURN)
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.returnReg, token.RETURN)
 	}
-	if token.tokenType == ILLEGAL {
-		expression, token = self.parseTokenByExp(expression, *self.typeReg, TYPE)
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.typeReg, token.TYPE)
 	}
-	if token.tokenType == ILLEGAL {
-		expression, token = self.parseTokenByExp(expression, *self.varReg, VAR)
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.varReg, token.VAR)
 	}
-	if token.tokenType == ILLEGAL {
-		panic(errors.New("unexpected token " + expression))
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.assignedReg, token.ASSIGNED)
+	}
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression, tokenElem = self.parseTokenByExp(expression, *self.literalReg, token.LITERAL)
+	}
+	if tokenElem.TokenType == token.ILLEGAL {
+		expression = self.appendError(expression)		
 	}
 
-	return expression, token
+	return expression, tokenElem
 }
 
-func (self *Lexer) parseTokens(expression string) {	
+func (self *Lexer) ParseTokens(expression string) ([]Token, []Error) {	
 	self.rowIndex = 0
 	self.columtIndex = 0
 	
-	self.commentReg = regexp.MustCompile(`^(comment)`)
+	self.commentReg = regexp.MustCompile(`^((\/\*).*(\*\/))`)
 	self.intReg = regexp.MustCompile(`^(int)`)
 	self.floatReg = regexp.MustCompile(`^(float)`)
 	self.stringReg = regexp.MustCompile(`^(string)`)
@@ -200,17 +238,20 @@ func (self *Lexer) parseTokens(expression string) {
 	self.typeReg = regexp.MustCompile(`^(type)`)
 	self.varReg = regexp.MustCompile(`^(var)`)
 	
+	self.assignedReg = regexp.MustCompile(`^(\=)`)
+	
 	self.numberReg = regexp.MustCompile(`^(([0-9]*\.[0-9]+)|([0-9]+\.[0-9]*)|([0-9]+))`)
+	self.literalReg = regexp.MustCompile(`^([a-zA-Z]+[a-zA-Z0-9]*)`)
 	
 	self.whiteSpacesReg = regexp.MustCompile(`^(\s+)`)
+	self.absorbErrorReg = regexp.MustCompile(`^(.[^\s]+)`)
 
 	var token Token
-	var tokens []Token
 	
 	for expression != "" {
 		expression, token = self.parseToken(expression)
-		tokens = append(tokens, token)
+		self.tokens = append(self.tokens, token)
 	}
 	
-	fmt.Println(tokens)
+	return self.tokens, self.errors
 }

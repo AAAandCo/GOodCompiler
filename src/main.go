@@ -2,14 +2,14 @@ package main
 
 import (
 	"fmt"
-	"math"
-	"token"
 	"lexer"
 )
 
 func main() {
+	lexerObj := new(lexer.Lexer)
+    tokens, errors := lexerObj.ParseTokens(" var = !ert /*df*/ {} [] ()  1 + 3 4534 78")
 
-	fmt.Printf(token.EOF.String());
-	fmt.Printf("Now you have %g problems.", math.Nextafter(2, 3))
+	fmt.Println(tokens)
+	fmt.Println(errors)
 }
 

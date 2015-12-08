@@ -2,10 +2,19 @@ package token
 
 import "strconv"
 
-type Token int
+type Token struct {
+	RowIndex int
+	ColumnIndex int
+	TokenType TokenType
+	Value string
+}
+
+type Tokens []Token
+
+type TokenType int
 
 const (
-	ILLEGAL Token = iota
+	ILLEGAL TokenType = iota
 	EOF
 	COMMENT
 
@@ -25,6 +34,7 @@ const (
 	QUO
 	REM
 
+	IF
 	FOR
 	ELSE
 	BREAK
@@ -40,6 +50,20 @@ const (
 
 	SEMICOLON
 	COLON
+	
+	INT_NUMBER
+	FLOAT_NUMBER
+	LITERAL
+	ASSIGNED
+	EQUAL
+	NOT_EQUAL
+	NOT
+	GREATE
+
+	STRING_VALUE
+
+	AND
+	OR
 )
 
 var tokens = [...]string{
@@ -66,24 +90,40 @@ var tokens = [...]string{
 	RBRACE:    "}",
 	SEMICOLON: ";",
 	COLON:     ":",
+	
+	INT_NUMBER:   "INT NUMBER",
+	FLOAT_NUMBER: "FLOAT NUMBER",
 
-	BREAK:    "break",
-	CONTINUE: "continue",
+	BREAK:    "BREAK",
+	CONTINUE: "CONTINUE",
 
-	ELSE:        "else",
-	FOR:         "for",
+	IF:			 "IF",
+	ELSE:        "ELSE",
+	FOR:         "FOR",
 
-	FUNC:   "func",
+	FUNC:   "FUNC",
 
-	RETURN:    "return",
+	RETURN:    "RETURN",
 
-	TYPE:   "type",
-	VAR:    "var",
+	TYPE:   "TYPE",
+	VAR:    "VAR",
+	
+	IDENTIFIER: "IDENTIFIER",
+	ASSIGNED: "=",
+	EQUAL: "==",
+	NOT_EQUAL: "!=",
+	NOT: "!",
+	GREATE: ">",
+
+	STRING_VALUE: "STRING VALUE",
+
+	AND: "&&",
+	OR: "||",
 }
 
-func (tok Token) String() string {
+func (tok TokenType) String() string {
 	s := ""
-	if 0 <= tok && tok < Token(len(tokens)) {
+	if 0 <= tok && tok < TokenType(len(tokens)) {
 		s = tokens[tok]
 	}
 	if s == "" {

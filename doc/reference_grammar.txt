@@ -1,0 +1,67 @@
+identifier = letter { letter | digit } .
+IdentifierList = identifier { "," identifier } .
+
+Expression = UnaryExpr | Expression binary_op Expression .
+ExpressionList = Expression { "," Expression } .
+    UnaryExpr  = PrimaryExpr | unary_op PrimaryExpr .
+    PrimaryExpr =
+        Operand |
+        identifier Index |
+        PrimaryExpr Arguments.
+	    
+	Index = "[" Expression "]" .
+
+	Arguments = "(" [ ExpressionList ] ")" .
+
+        binary_op  = "||" | "&&" | rel_op | add_op | mul_op .
+            rel_op = "==" | "!=" | "<" | ">" .
+            add_op = "+" | "-" .
+            mul_op = "*" | "/" .
+        unary_op   = "+" | "-" | "!" .
+        assign_op  = "=" .
+        
+        Operand    = Literal | identifier | "(" Expression ")" .
+            Literal = int_lit | float_lit | string_lit | bool_lit .
+
+Type = ArrayType | base_type .
+    ArrayType = "[" int_lit "]" base_type .
+
+Declaration = "var" Identifier Type.
+
+FunctionDecl = "func" identifier Signature FunctionBody.
+    Signature = "(" [ ParameterList ] ")" Type .
+        ParameterList = ParameterDecl { "," ParameterDecl } .
+        ParameterDecl = Identifier Type .
+    FunctionBody = "{" StatementList ReturnStmt "}" .
+
+Statement = Declaration | SimpleStmt | ReturnStmt | Block | IfStmt | ForStmt .
+StatementList = { Statement ";" } .
+
+    SimpleStmt = EmptyStmt | ExpressionStmt | Assignment .
+        EmptyStmt = .
+        ExpressionStmt = Expression .
+        Assignment = ExpressionList assign_op ExpressionList .
+        
+    ReturnStmt = "return" Expression .
+
+    Block = "{" StatementList "}" .
+
+    IfStmt = "if" Expression Block [ "else" Block ] .
+
+    ForStmt = "for" [ Expression ] Block .
+
+base_type = "bool" | "float" | "int" | "string" .
+
+bool_lit = "true" | "false" .
+
+
+
+Precedence    Operator
+    5             *  /  %  <<  >>  &  &^
+    4             +  -  |  ^
+    3             ==  !=  <  <=  >  >=
+    2             &&
+    1             ||
+    
+Functions:
+    len print println

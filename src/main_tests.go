@@ -32,6 +32,7 @@ func TestCase1(context *testing.B) {
 		TokenType: token.INT_NUMBER,
 		Value: "2",
 	}
+
 	expectedTokens = append(expectedTokens, tokenElem)
 
 	if reflect.DeepEqual(expectedTokens, tokens) && reflect.DeepEqual(exepectedErrors, errors) {

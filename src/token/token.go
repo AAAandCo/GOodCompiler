@@ -64,6 +64,8 @@ const (
 
 	AND
 	OR
+	
+	SIN
 )
 
 var tokens = [...]string{
@@ -119,6 +121,8 @@ var tokens = [...]string{
 
 	AND: "&&",
 	OR: "||",
+	
+	SIN: "SIN",
 }
 
 func (tok TokenType) String() string {

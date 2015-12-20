@@ -12,8 +12,10 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"unicode"
 	"math"
+	"strconv"
+	"lexer"
+	"token"
 )
 
 var regs = make([]int, 26)
@@ -32,15 +34,12 @@ var base int
 %type <val> expr number
 
 // same for terminals
-%token <val> DIGIT LETTER FUNC_EXPR
+%token <val> INT_NUMBER ADD SUB MUL QUO REM SIN LPAREN RPAREN ASSIGNED IDENTIFIER
 
-%left '|'
-%left '&'
-%left '+'  '-'
-%left '*'  '/'  '%'
+%left ADD  SUB
+%left MUL  QUO  REM
 %left UMINUS      /*  supplies  precedence  for  unary  minus  */
-%left FUNC_EXPR
-
+%left SIN
 
 %%
 
@@ -52,40 +51,36 @@ statement	:    expr
 		{
 			fmt.Printf( "result: %d\n", $1 );
 		}
-	|    LETTER '=' expr
+	|    IDENTIFIER ASSIGNED expr
 		{
 			regs[$1]  =  $3
 		}
 	;
 
 
-expr	:    '(' expr ')'
+expr	:    LPAREN expr RPAREN
 		{ $$  =  $2 }
-	|    expr '+' expr
+	|    expr ADD expr
 		{ $$  =  $1 + $3 }
-	|    expr '-' expr
+	|    expr SUB expr
 		{ $$  =  $1 - $3 }
-	|    expr '*' expr
+	|    expr MUL expr
 		{ $$  =  $1 * $3 }
-	|    expr '/' expr
+	|    expr QUO expr
 		{ $$  =  $1 / $3 }
-	|    expr '%' expr
+	|    expr REM expr
 		{ $$  =  $1 % $3 }
-	|    expr '&' expr
-		{ $$  =  $1 & $3 }
-	|    FUNC_EXPR number
+	|    SIN LPAREN expr RPAREN
 	     {
-	     	fmt.Printf("func := %d;\n", $2)
-	     	$$ = int(math.Sin(float64($2)))
-	     	fmt.Printf("float64 := %f;\n", float64($2))
-	     	fmt.Printf("math sin := %f;\n", math.Sin(float64($2)))
+	     	fmt.Printf("func := %d;\n", $3)
+	     	$$ = int(math.Sin(float64($3)))
+	     	fmt.Printf("float64 := %f;\n", float64($3))
+	     	fmt.Printf("math sin := %f;\n", math.Sin(float64($3)))
 	     	fmt.Printf("resINt := %d;\n", $$)
 	     }
-	|    expr '|' expr
-		{ $$  =  $1 | $3 }
-	|    '-'  expr        %prec  UMINUS
+	|    SUB  expr        %prec  UMINUS
 		{ $$  = -$2  }
-	|    LETTER
+	|    IDENTIFIER
 		{ $$  = regs[$1] }
 	|    number
 		{
@@ -94,61 +89,54 @@ expr	:    '(' expr ')'
 		}
 	;
 
-number	:    DIGIT
-		{
-		    fmt.Printf("val := %d;\n", $1)
-			$$ = $1;
-			if $1==0 {
-				base = 8
-			} else {
-				base = 10
-			}
-		}
-	|    number DIGIT
-		{
-			$$ = base * $1 + $2
-		    fmt.Printf("val := %d;\n", $$)
-		}
-	;
+number	:   INT_NUMBER;
 
 %%      /*  start  of  programs  */
 
 type CalcLex struct {
-	s string
-	pos int
+	tokens []token.Token
+	tokenMap map[int]int
+	pos int	
 }
 
 
-func (l *CalcLex) Lex(lval *CalcSymType) int {
-	var c rune = ' '
-	for c == ' ' {
-		if l.pos == len(l.s) {
-			return 0
-		}
-		c = rune(l.s[l.pos])
-		l.pos += 1
-	}
-	if l.pos == len(l.s) {
+func (l *CalcLex) Lex(lval *CalcSymType) int {	
+	if l.pos == len(l.tokens) {
 		return 0
 	}
+	var c token.Token = l.tokens[l.pos]
+	l.pos += 1
 
-	if (c == 's') {
-		fmt.Printf("s consumed")
-		return FUNC_EXPR
+	if (c.TokenType == token.INT_NUMBER) {
+		numb, _ := strconv.ParseInt(c.Value, 10, 0)
+		lval.val = int(numb)
+		return INT_NUMBER
 	}
 
-	if unicode.IsDigit(c) {
-		lval.val = int(c) - '0'
-		return DIGIT
-	} else if unicode.IsLower(c) {
-		lval.val = int(c) - 'a'
-		return LETTER
-	}
-	return int(c)
+	return int(l.tokenMap[int(c.TokenType)])
 }
 
 func (l *CalcLex) Error(s string) {
 	fmt.Printf("syntax error: %s\n", s)
+}
+
+func prepareTokenMap() map[int]int {
+	var tokenMap map[int]int
+	tokenMap = make(map[int]int)
+
+	tokenMap[int(token.ADD)] = ADD
+	tokenMap[int(token.SUB)] = SUB
+	tokenMap[int(token.MUL)] = MUL
+	tokenMap[int(token.QUO)] = QUO
+	tokenMap[int(token.REM)] = REM
+	tokenMap[int(token.SIN)] = SIN
+	tokenMap[int(token.LPAREN)] = LPAREN
+	tokenMap[int(token.RPAREN)] = RPAREN
+	tokenMap[int(token.ASSIGNED)] = ASSIGNED
+	tokenMap[int(token.INT_NUMBER)] = INT_NUMBER
+	tokenMap[int(token.IDENTIFIER)] = IDENTIFIER
+	
+	return tokenMap
 }
 
 func main() {
@@ -160,7 +148,13 @@ func main() {
 
 		fmt.Printf("equation: ")
 		if eqn, ok = readline(fi); ok {
-			CalcParse(&CalcLex{s: eqn})
+			lexerObj := new(lexer.Lexer)
+			tokensParsed, errors := lexerObj.ParseTokens(eqn)
+			if len(errors) > 0 {
+				panic("Unexpected tokens")
+			}
+			tokenMapPrepared := prepareTokenMap()
+			CalcParse(&CalcLex{tokens: tokensParsed, tokenMap: tokenMapPrepared})
 		} else {
 			break
 		}

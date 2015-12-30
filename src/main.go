@@ -2,14 +2,19 @@ package main
 
 import (
 	"fmt"
-	"lexer"
+	"parser"
+	"os"
 )
 
 func main() {
-	lexerObj := new(lexer.Lexer)
-    tokens, errors := lexerObj.ParseTokens(" var = !ert /*df*/ {} [] ()  1 + 3 4534 78 sin(3)")
+	if (len(os.Args) <= 1) {
+		fmt.Println("Enter Filename with source code as first command line argument")
+	}
 
-	fmt.Println(tokens)
-	fmt.Println(errors)
+	filename := os.Args[1]
+	ast, err := parser.ParseFile(filename)
+
+	fmt.Println(ast)
+	fmt.Println(err)
 }
 

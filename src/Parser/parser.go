@@ -17,6 +17,11 @@ func (p *parser) init(source string) {
 	p.tokens = tokens
 }
 
+func (p *parser) parseDeclaration() *ast.DeclarationAst {
+
+	return &ast.DeclarationAst{}
+}
+
 func (p *parser) parseFile() *ast.FileAst {
 
 	return &ast.FileAst{}

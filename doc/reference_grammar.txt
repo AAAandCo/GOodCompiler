@@ -26,6 +26,11 @@ ExpressionList = Expression { "," Expression } .
 Type = ArrayType | base_type .
     ArrayType = "[" int_lit "]" base_type .
 
+int_lit = ( "1" … "9" ) { int_lit } .
+float_lit = int_lit "." int_lit .
+string_lit = '"' { char } '"'   
+char = /* ascii code point */
+
 Declaration = "var" Identifier Type.
 
 FunctionDecl = "func" identifier Signature FunctionBody.

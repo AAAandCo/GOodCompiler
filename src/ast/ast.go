@@ -2,9 +2,39 @@ package ast
 
 import "token"
 
-type NodeAst interface {
+type Node interface {
 	astNode()
 }
+
+type Declaration interface {
+	Node
+	declNode()
+}
+
+type Statement interface {
+	Node
+	stmtNode()
+}
+
+type Expression interface {
+	Node
+	exprNode()
+}
+
+type (
+	VarDecl struct {
+		Name string
+
+	}
+
+	FuncDecl struct {
+		Name string
+		// todo: add parameter list
+		// todo: add function body
+	}
+)
+
+
 
 type (
 

@@ -3,6 +3,7 @@ package lexer
 import (
 	"regexp"
 	"token"
+	"fmt"
 )
 
 type Pattern struct {
@@ -200,6 +201,12 @@ func (self *Lexer) ParseTokens(expression string) ([]token.Token, []Error) {
 	self.patterns = append(self.patterns, pattern)
 
 	pattern = Pattern {
+		expr: regexp.MustCompile(`^(,)`),
+		kind: token.COMMA,
+	}
+	self.patterns = append(self.patterns, pattern)
+
+	pattern = Pattern {
 		expr: regexp.MustCompile(`^(break)`),
 		kind: token.BREAK,
 	}
@@ -322,13 +329,18 @@ func (self *Lexer) ParseTokens(expression string) ([]token.Token, []Error) {
 	self.whiteSpacesReg = regexp.MustCompile(`^(\s+)`)
 	self.absorbErrorReg = regexp.MustCompile(`^(.[^\s]+)`)
 
-	var token token.Token
-
+	var t token.Token
+	fmt.Println("Start parse tokens")
 	for expression != "" {
-		expression, token = self.parseToken(expression)
-		self.tokens = append(self.tokens, token)
+		expression, t = self.parseToken(expression)
+		self.tokens = append(self.tokens, t)
 		expression = self.trim(expression)
+		fmt.Println(expression)
 	}
+
+	self.tokens = append(self.tokens, token.Token{
+		TokenType: token.EOF,
+	})
 	
 	return self.tokens, self.errors
 }

@@ -50,6 +50,8 @@ const (
 
 	SEMICOLON
 	COLON
+
+	COMMA // ,
 	
 	INT_NUMBER
 	FLOAT_NUMBER
@@ -92,6 +94,7 @@ var tokens = [...]string{
 	RBRACE:    "}",
 	SEMICOLON: ";",
 	COLON:     ":",
+	COMMA:     ",",
 	
 	INT_NUMBER:   "INT NUMBER",
 	FLOAT_NUMBER: "FLOAT NUMBER",

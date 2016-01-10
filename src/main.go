@@ -18,12 +18,13 @@ func main() {
 
 	v := &ast.PrintVisitor{}
 
-	v.VisitVar(&ast.VarDecl{
+	v.VisitVarDecl(&ast.VarDecl{
 		Name: &ast.Ident{
 			Name: "Test Identifier",
 		},
 	})
 
+	fileAst.Accept(v)
 	//fmt.Println("String represetation of the AST:")
 	fmt.Println(fileAst)
 }

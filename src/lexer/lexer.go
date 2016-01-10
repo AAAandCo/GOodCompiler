@@ -3,7 +3,6 @@ package lexer
 import (
 	"regexp"
 	"token"
-	"fmt"
 )
 
 type Pattern struct {
@@ -330,12 +329,10 @@ func (self *Lexer) ParseTokens(expression string) ([]token.Token, []Error) {
 	self.absorbErrorReg = regexp.MustCompile(`^(.[^\s]+)`)
 
 	var t token.Token
-	fmt.Println("Start parse tokens")
 	for expression != "" {
 		expression, t = self.parseToken(expression)
 		self.tokens = append(self.tokens, t)
 		expression = self.trim(expression)
-		fmt.Println(expression)
 	}
 
 	self.tokens = append(self.tokens, token.Token{

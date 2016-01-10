@@ -6,7 +6,7 @@ import (
 
 type NodeAst interface {
 	astNode()
-//	Accept(v Visitor)
+	Accept(v Visitor)
 }
 
 type Declaration interface {
@@ -106,7 +106,7 @@ type (
 		Decl Declaration
 	}
 
-	EmtpyStmt struct {}
+	EmptyStmt struct {}
 
 	ExprStmt struct {
 		X Expression
@@ -139,7 +139,7 @@ type (
 )
 
 func (p *DeclStmt) astNode() {}
-func (p *EmtpyStmt) astNode() {}
+func (p *EmptyStmt) astNode() {}
 func (p *ExprStmt) astNode() {}
 func (p *AssignStmt) astNode() {}
 func (p *ReturnStmt) astNode() {}
@@ -148,7 +148,7 @@ func (p *IfStmt) astNode() {}
 func (p *ForStmt) astNode() {}
 
 func (p *DeclStmt) stmtNode() {}
-func (p *EmtpyStmt) stmtNode() {}
+func (p *EmptyStmt) stmtNode() {}
 func (p *ExprStmt) stmtNode() {}
 func (p *AssignStmt) stmtNode() {}
 func (p *ReturnStmt) stmtNode() {}
@@ -159,6 +159,64 @@ func (p *ForStmt) stmtNode() {}
 // File
 type FileAst struct {
 	Decls []Declaration
+	Name string
 }
 
 func (p *FileAst) astNode() {}
+
+func (p *FileAst) Accept(v Visitor) {
+	v.VisitFileAst(p)
+}
+
+// accept implementations
+
+func (p *BadExpr) Accept(v Visitor) {
+	v.VisitBadExpr(p)
+}
+func (p *BasicLit) Accept(v Visitor) {
+	v.VisitBasicLit(p)
+}
+func (p *Ident) Accept(v Visitor) {
+	v.VisitIdent(p)
+}
+func (p *UnaryExpr) Accept(v Visitor) {
+	v.VisitUnaryExpr(p)
+}
+func (p *BinaryExpr) Accept(v Visitor) {
+	v.VisitBinaryExpr(p)
+}
+func (p *ArrayType) Accept(v Visitor) {
+	v.VisitArrayType(p)
+}
+
+func (p *VarDecl) Accept(v Visitor) {
+	v.VisitVarDecl(p)
+}
+func (p *FuncDecl) Accept(v Visitor) {
+	v.VisitFunc(p)
+}
+
+func (p *DeclStmt) Accept(v Visitor) {
+	v.VisitDeclStmt(p)
+}
+func (p *EmptyStmt) Accept(v Visitor) {
+	v.VisitEmptyStmt(p)
+}
+func (p *ExprStmt) Accept(v Visitor) {
+	v.VisitExprStmt(p)
+}
+func (p *AssignStmt) Accept(v Visitor) {
+	v.VisitAssignStmt(p)
+}
+func (p *ReturnStmt) Accept(v Visitor) {
+	v.VisitReturnStmt(p)
+}
+func (p *BlockStmt) Accept(v Visitor) {
+	v.VisitBlockStmt(p)
+}
+func (p *IfStmt) Accept(v Visitor) {
+	v.VisitIfStmt(p)
+}
+func (p *ForStmt) Accept(v Visitor) {
+	v.VisitForStmt(p)
+}

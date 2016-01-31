@@ -12,14 +12,13 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"math"
-	"strconv"
 	"lexer"
 	"token"
+	"ast"
 )
 
-var regs = make([]int, 26)
-var base int
+var regs = make(map[string]ast.Expression)
+var base ast.Expression
 
 %}
 
@@ -27,19 +26,27 @@ var base int
 // as ${PREFIX}SymType, of which a reference is passed to the lexer.
 %union{
 	val int
+	nodeAst ast.Expression
+	token token.Token
+	lex *CalcLex
 }
 
 // any non-terminal which returns a value needs a type, which is
 // really a field name in the above union struct
-%type <val> expr number
+%type <nodeAst> expr number statement
+
+%token <lex> EOF
 
 // same for terminals
-%token <val> INT_NUMBER ADD SUB MUL QUO REM SIN LPAREN RPAREN ASSIGNED IDENTIFIER
+%token <token> INT_NUMBER FLOAT_NUMBER
+
+// same for terminals
+%token <token> ADD SUB MUL QUO REM SIN COS SQRT LPAREN RPAREN ASSIGNED IDENTIFIER
 
 %left ADD  SUB
 %left MUL  QUO  REM
 %left UMINUS      /*  supplies  precedence  for  unary  minus  */
-%left SIN
+%left SIN COS SQRT
 
 %%
 
@@ -49,39 +56,107 @@ list	: /* empty */
 
 statement	:    expr
 		{
-			fmt.Printf( "result: %d\n", $1 );
+			fmt.Println("end expr");
+			$$ = $1
 		}
 	|    IDENTIFIER ASSIGNED expr
 		{
-			regs[$1]  =  $3
+			regs[$1.Value] = $3
+		}
+	|	expr EOF
+		{
+			fmt.Println("EOF");
+			//$2.nodeAst = $1;
 		}
 	;
 
 
 expr	:    LPAREN expr RPAREN
-		{ $$  =  $2 }
+		{ 
+			fmt.Printf("expr <- LPAREN expr RPAREN\n")
+			$$ = $2 
+		}
 	|    expr ADD expr
-		{ $$  =  $1 + $3 }
+		{ 
+			fmt.Println($2.Value)
+			$$ = &ast.BinaryExpr {
+				X: $1,
+				OpT: $2,
+				Y: $3,
+			}
+		}
 	|    expr SUB expr
-		{ $$  =  $1 - $3 }
+		{ 
+			fmt.Println($2.Value)
+			$$ = &ast.BinaryExpr {
+				X: $1,
+				OpT: $2,
+				Y: $3,
+			}
+		}
 	|    expr MUL expr
-		{ $$  =  $1 * $3 }
+		{ 
+			fmt.Println($2.Value)
+			$$ = &ast.BinaryExpr {
+				X: $1,
+				OpT: $2,
+				Y: $3,
+			}
+		}
 	|    expr QUO expr
-		{ $$  =  $1 / $3 }
+		{ 
+			fmt.Println($2.Value)
+			$$ = &ast.BinaryExpr {
+				X: $1,
+				OpT: $2,
+				Y: $3,
+			}
+		}
 	|    expr REM expr
-		{ $$  =  $1 % $3 }
+		{ 
+			fmt.Println($2.Value)
+			$$ = &ast.BinaryExpr {
+				X: $1,
+				OpT: $2,
+				Y: $3,
+			}
+		}
 	|    SIN LPAREN expr RPAREN
+		{
+			fmt.Println($1.Value)
+			$$ = &ast.UnaryExpr{
+				X: $3,
+				OpT: $1,
+			}			
+	     }
+	|    COS LPAREN expr RPAREN
+		{
+			fmt.Println($1.Value)
+			$$ = &ast.UnaryExpr{
+				X: $3,
+				OpT: $1,
+			}			
+	     }
+	|    SQRT LPAREN expr RPAREN
 	     {
-	     	fmt.Printf("func := %d;\n", $3)
-	     	$$ = int(math.Sin(float64($3)))
-	     	fmt.Printf("float64 := %f;\n", float64($3))
-	     	fmt.Printf("math sin := %f;\n", math.Sin(float64($3)))
-	     	fmt.Printf("resINt := %d;\n", $$)
+			fmt.Println($1.Value)
+			$$ = &ast.UnaryExpr{
+				X: $3,
+				OpT: $1,
+			}			
 	     }
 	|    SUB  expr        %prec  UMINUS
-		{ $$  = -$2  }
+		{
+			fmt.Println($1.Value)
+			$$ = &ast.UnaryExpr{
+				X: $2,
+				OpT: $1,
+			}
+		}
 	|    IDENTIFIER
-		{ $$  = regs[$1] }
+		{
+			$$ = regs[$1.Value]
+		}
 	|    number
 		{
 		    fmt.Printf("expr <- number\n")
@@ -89,14 +164,25 @@ expr	:    LPAREN expr RPAREN
 		}
 	;
 
-number	:   INT_NUMBER;
+number	:   INT_NUMBER
+		{
+			fmt.Println($1.Value)
+			$$ = &ast.BasicLit{T: $1}
+		}
+	| 		FLOAT_NUMBER
+		{
+			fmt.Println($1.Value)
+			$$ = &ast.BasicLit{T: $1}
+		}
+	;
 
 %%      /*  start  of  programs  */
 
 type CalcLex struct {
 	tokens []token.Token
 	tokenMap map[int]int
-	pos int	
+	nodeAst ast.Expression
+	pos int
 }
 
 
@@ -106,13 +192,12 @@ func (l *CalcLex) Lex(lval *CalcSymType) int {
 	}
 	var c token.Token = l.tokens[l.pos]
 	l.pos += 1
-
-	if (c.TokenType == token.INT_NUMBER) {
-		numb, _ := strconv.ParseInt(c.Value, 10, 0)
-		lval.val = int(numb)
-		return INT_NUMBER
-	}
-
+	
+	if (lval.token.TokenType == token.EOF) {
+		lval.lex = l
+	} else {
+		lval.token = c
+	}	
 	return int(l.tokenMap[int(c.TokenType)])
 }
 
@@ -130,10 +215,14 @@ func prepareTokenMap() map[int]int {
 	tokenMap[int(token.QUO)] = QUO
 	tokenMap[int(token.REM)] = REM
 	tokenMap[int(token.SIN)] = SIN
+	tokenMap[int(token.COS)] = COS
+	tokenMap[int(token.SQRT)] = SQRT
+	tokenMap[int(token.EOF)] = EOF
 	tokenMap[int(token.LPAREN)] = LPAREN
 	tokenMap[int(token.RPAREN)] = RPAREN
 	tokenMap[int(token.ASSIGNED)] = ASSIGNED
 	tokenMap[int(token.INT_NUMBER)] = INT_NUMBER
+	tokenMap[int(token.FLOAT_NUMBER)] = FLOAT_NUMBER
 	tokenMap[int(token.IDENTIFIER)] = IDENTIFIER
 	
 	return tokenMap

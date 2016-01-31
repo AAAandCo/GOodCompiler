@@ -68,6 +68,8 @@ const (
 	OR
 	
 	SIN
+	COS
+	SQRT
 )
 
 var tokens = [...]string{
@@ -126,6 +128,8 @@ var tokens = [...]string{
 	OR: "||",
 	
 	SIN: "SIN",
+	COS: "COS",
+	SQRT: "SQRT",
 }
 
 func (tok TokenType) String() string {

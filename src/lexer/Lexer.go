@@ -264,6 +264,18 @@ func (self *Lexer) ParseTokens(expression string) ([]token.Token, []Error) {
 		kind: token.SIN,
 	}
 	self.patterns = append(self.patterns, pattern)
+	
+	pattern = Pattern {
+		expr: regexp.MustCompile(`^(cos)`),
+		kind: token.COS,
+	}
+	self.patterns = append(self.patterns, pattern)
+	
+	pattern = Pattern {
+		expr: regexp.MustCompile(`^(sqrt)`),
+		kind: token.SQRT,
+	}
+	self.patterns = append(self.patterns, pattern)
 
 	pattern = Pattern {
 		expr: regexp.MustCompile(`^(\=\=)`),

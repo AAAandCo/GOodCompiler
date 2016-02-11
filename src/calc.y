@@ -20,6 +20,8 @@ import (
 var regs = make(map[string]ast.Expression)
 var base ast.Expression
 
+var mainResult ast.Expression
+
 %}
 
 // fields inside this union end up as the fields in a structure known
@@ -28,7 +30,7 @@ var base ast.Expression
 	val int
 	nodeAst ast.Expression
 	token token.Token
-	lex *CalcLex
+	lex CalcLex
 }
 
 // any non-terminal which returns a value needs a type, which is
@@ -56,7 +58,7 @@ list	: /* empty */
 
 statement	:    expr
 		{
-			fmt.Println("end expr");
+			fmt.Println("end expr")
 			$$ = $1
 		}
 	|    IDENTIFIER ASSIGNED expr
@@ -65,8 +67,8 @@ statement	:    expr
 		}
 	|	expr EOF
 		{
-			fmt.Println("EOF");
-			//$2.nodeAst = $1;
+			fmt.Println("EOF")
+			mainResult = $1
 		}
 	;
 
@@ -194,7 +196,7 @@ func (l *CalcLex) Lex(lval *CalcSymType) int {
 	l.pos += 1
 	
 	if (lval.token.TokenType == token.EOF) {
-		lval.lex = l
+		lval.lex = *l
 	} else {
 		lval.token = c
 	}	
@@ -244,10 +246,11 @@ func main() {
 			}
 			tokenMapPrepared := prepareTokenMap()
 			CalcParse(&CalcLex{tokens: tokensParsed, tokenMap: tokenMapPrepared})
+			fmt.Println(mainResult)
 		} else {
 			break
 		}
-	}
+	}	
 }
 
 func readline(fi *bufio.Reader) (string, bool) {
